@@ -7,69 +7,47 @@ typedef enum {
   HIGH
 } RangeStatus;
 
-typedef struct {
-  RangeStatus temperature;
-  RangeStatus soc;
-  RangeStatus chargeRate;
-} BatteryStatus;
-
 RangeStatus checkRange(float value, float lowerLimit, float upperLimit) {
-  if (value < lowerLimit) {
-    return LOW;
-  }
-  if (value > upperLimit) {
-    return HIGH;
-  }
-  return NORMAL;
-}
-
-BatteryStatus batteryStatus(float temperature, float soc, float chargeRate) {
-  BatteryStatus status;
-  status.temperature = checkRange(temperature, 0, 45);
-  status.soc = checkRange(soc, 20, 80);
-  status.chargeRate = checkRange(chargeRate, 0, 0.8);
-  return status;
+  return (value < lowerLimit) ? LOW : (value > upperLimit) ? HIGH : NORMAL;
 }
 
 void printStatus(const char* parameter, RangeStatus status) {
-  switch (status) {
-    case LOW:
-      printf("%s is too low!\n", parameter);
-      break;
-    case HIGH:
-      printf("%s is too high!\n", parameter);
-      break;
-    default:
-      break;
-  }
+  const char* statusMessage = (status == LOW) ? "too low" : "too high";
+  printf("%s is %s!\n", parameter, statusMessage);
 }
 
-int batteryIsOk(float temperature, float soc, float chargeRate) {
-  BatteryStatus status = batteryStatus(temperature, soc, chargeRate);
-  
-  int result = 1;
-  if (status.temperature != NORMAL) {
-    printStatus("Temperature", status.temperature);
-    result = 0;
+int isBatteryParameterOk(float temperature, float soc, float chargeRate) {
+  RangeStatus tempStatus = checkRange(temperature, 0, 45);
+  RangeStatus socStatus = checkRange(soc, 20, 80);
+  RangeStatus chargeRateStatus = checkRange(chargeRate, 0, 0.8);
+
+  int isOk = 1;
+  if (tempStatus != NORMAL) {
+    printStatus("Temperature", tempStatus);
+    isOk = 0;
   }
-  if (status.soc != NORMAL) {
-    printStatus("State of Charge", status.soc);
-    result = 0;
+  if (socStatus != NORMAL) {
+    printStatus("State of Charge", socStatus);
+    isOk = 0;
   }
-  if (status.chargeRate != NORMAL) {
-    printStatus("Charge Rate", status.chargeRate);
-    result = 0;
+  if (chargeRateStatus != NORMAL) {
+    printStatus("Charge Rate", chargeRateStatus);
+    isOk = 0;
   }
 
-  return result;
+  return isOk;
+}
+
+void runTests() {
+  assert(isBatteryParameterOk(25, 70, 0.7));
+  assert(!isBatteryParameterOk(50, 85, 0));
+  assert(!isBatteryParameterOk(-5, 50, 0.5));
+  assert(!isBatteryParameterOk(25, 15, 0.5));
+  assert(!isBatteryParameterOk(25, 50, 1.0));
+  printf("All tests passed.\n");
 }
 
 int main() {
-  assert(batteryIsOk(25, 70, 0.7));
-  assert(!batteryIsOk(50, 85, 0));
-  assert(!batteryIsOk(-5, 50, 0.5));
-  assert(!batteryIsOk(25, 15, 0.5));
-  assert(!batteryIsOk(25, 50, 1.0));
-  printf("All tests passed.\n");
+  runTests();
   return 0;
 }
